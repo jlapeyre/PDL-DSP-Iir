@@ -1,0 +1,20 @@
+.gitignore
+Changes
+iir.pd
+LICENSE
+Makefile.PL
+MANIFEST			This list of files
+META.yml
+README.pod
+t/00-load.t
+t/manifest.t
+t/pod.t
+debian/control
+debian/changelog
+debian/copyright
+debian/files
+debian/rules
+debian/watch
+debian/source
+debian/source/format
+debian/compat

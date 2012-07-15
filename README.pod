@@ -1,0 +1,102 @@
+=head1 NAME
+
+PDL::DSP::Iir -- Infinite impulse response and recursive filters
+
+=head1 DESCRIPTION
+
+This module provides recursive filters. Currently, only
+moving average filters are implemented. The moving average
+is actually a FIR, but it is implemented recursively as are
+IIR filters, so it is included here.
+
+=head1 SYNOPSIS
+
+ use PDL::LiteF;
+ use PDL::DSP::Iir( 'moving_average' );
+
+ # apply three passes of a moving average with window size 2*5+1 = 11.
+ $filtered_data = moving_average($data,5,3);
+
+ # apply one pass of a moving average with window size 2*3+1 = 7.
+ $filtered_data = moving_average($data,3);
+
+ # call as method with window size 2 * $hw + 1
+  $y = $x->moving_average($hw);
+
+=cut
+=head1 FUNCTIONS
+
+
+
+=cut
+=head2
+
+The function C<moving_average> calls one of the lower level functions
+C<mov_avg> or C<multi_pass_mov_avg>, but they can be used directly as
+well.
+
+=head2  moving_average
+
+ moving_average($data, $half_width [, $n_passes ]);
+
+Other terms for this kind of filter are: smoothing, sliding average, box smoothing, boxcar smoothing,
+boxcar filter, etc.
+
+This function applies a moving average of C< $data > with window of size C<w = 2*$half_width+1>. That is, the 
+output value of point C<i> is the (uniformly weighted) average of the input points from
+C<i - half_width> through C<i + half_width>. The filter is
+repeated C<$n_passes> times if C<$n_passes> is supplied. This effectively applies a filter
+with a response that decreases with the distance from the point C<i>.  The recursive
+algorithm is used, which can be much faster than the equivalent direct convolution
+with a rectangular window. The boundary at C<data[0]> is treated by using a window
+of size 1 at C<data[0]>, then of size 3 at C<data[1]>, and so on until the size reaches
+C<w>. The boundary at C<datap[n-1]> is treated in the same way. In this way, the response
+around each point is symmetric.
+
+The accumulator for all fixed point types is of type C<int>, and for both floating point types is C<double>.
+
+=cut
+=head2 mov_avg
+
+=for sig
+
+  Signature: (x(n); double [o]y(n); int half_width)
+
+
+
+=for ref
+
+Moving average with a single pass.
+
+
+
+=for bad
+
+mov_avg ignores the bad-value flag of the input piddles.
+It will set the bad-value flag of all output piddles if the flag is set for any of the input piddles.
+
+
+=cut
+=head2 multi_pass_mov_avg
+
+=for sig
+
+  Signature: (x(n); double [o]y(n); double [t]ytemp(n); int half_width; int n_passes)
+
+
+
+=for ref
+
+This is the same as C<mov_avg>, except that
+smoothing is repeated n_passes times. Note that storage C<ytemp>
+is created.
+
+
+
+=for bad
+
+multi_pass_mov_avg ignores the bad-value flag of the input piddles.
+It will set the bad-value flag of all output piddles if the flag is set for any of the input piddles.
+
+
+=cut

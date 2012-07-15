@@ -1,0 +1,21 @@
+Source: libpdl-dsp-iir-perl
+Section: perl
+Priority: optional
+Maintainer: John Lapeyre <jlapeyre@cpan.org>
+Build-Depends: debhelper (>= 8)
+Build-Depends-Indep: pdl,
+ perl,
+ perl-base,
+ perl-modules
+Standards-Version: 3.9.2
+Homepage: http://search.cpan.org/dist/PDL-DSP-Iir/
+
+Package: libpdl-dsp-iir-perl
+Architecture: all
+Depends: ${misc:Depends}, ${perl:Depends},
+ pdl,
+ perl-base
+Description: Infinite impulse response and recursive filters
+ PDL::DSP::Iir provides recursive filters. Currently, only moving average
+ filters are implemented. The moving average is actually a FIR, but it is
+ implemented recursively as are IIR filters, so it is included here.

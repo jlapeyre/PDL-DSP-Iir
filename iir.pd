@@ -1,0 +1,183 @@
+##-*- Mode: CPerl -*-
+
+use strict;
+use warnings;
+
+our $VERSION = '0.001';
+pp_setversion("'$VERSION'");
+
+pp_addpm({At=>'Top'}, <<'EO_TOPMATTER');
+
+=head1 NAME
+
+PDL::DSP::Iir -- Infinite impulse response and recursive filters
+
+=head1 DESCRIPTION
+
+This module provides recursive filters. Currently, only
+moving average filters are implemented. The moving average
+is actually a FIR, but it is implemented recursively as are
+IIR filters, so it is included here.
+
+=head1 SYNOPSIS
+
+ use PDL::LiteF;
+ use PDL::DSP::Iir( 'moving_average' );
+
+ # apply three passes of a moving average with window size 2*5+1 = 11.
+ $filtered_data = moving_average($data,5,3);
+
+ # apply one pass of a moving average with window size 2*3+1 = 7.
+ $filtered_data = moving_average($data,3);
+
+ # call as method with window size 2 * $hw + 1
+  $y = $x->moving_average($hw);
+
+=cut
+
+$PDL::onlinedoc->scan(__FILE__) if $PDL::onlinedoc;
+
+use strict;
+use warnings;
+
+use PDL::LiteF;
+use PDL::NiceSlice;
+use PDL::Options;
+
+EO_TOPMATTER
+
+pp_addpm({At => 'Middle'}, <<'EO_MIDDLE');
+
+=head2
+
+The function C<moving_average> calls one of the lower level functions
+C<mov_avg> or C<multi_pass_mov_avg>, but they can be used directly as
+well.
+
+=head2  moving_average
+
+=for ref
+
+ moving_average($data, $half_width [, $n_passes ]);
+
+Other terms for this kind of filter are: smoothing, sliding average, box smoothing, boxcar smoothing,
+boxcar filter, etc.
+
+This function applies a moving average of C< $data > with window of size C<w = 2*$half_width+1>. That is, the 
+output value of point C<i> is the (uniformly weighted) average of the input points from
+C<i - half_width> through C<i + half_width>. The filter is
+repeated C<$n_passes> times if C<$n_passes> is supplied. This effectively applies a filter
+with a response that decreases with the distance from the point C<i>.  The recursive
+algorithm is used, which can be much faster than the equivalent direct convolution
+with a rectangular window. The boundary at C<data[0]> is treated by using a window
+of size 1 at C<data[0]>, then of size 3 at C<data[1]>, and so on until the size reaches
+C<w>. The boundary at C<datap[n-1]> is treated in the same way. In this way, the response
+around each point is symmetric.
+
+The accumulator for all fixed point types is of type C<int>, and for both floating point types is C<double>.
+
+=cut
+
+sub moving_average {
+    my($x,$hw,$passes) = @_;
+    $passes ? multi_pass_mov_avg($x,$hw,$passes) :
+        mov_avg($x,$hw);
+}
+
+*PDL::moving_average = \&moving_average;
+
+EO_MIDDLE
+
+#our @METHODS = qw( moving_average mov_avg multi_pass_mov_avg );
+#pp_add_exported ( @METHODS );
+
+pp_add_exported qw( moving_average mov_avg multi_pass_mov_avg );
+
+#pp_addpm "our \@METHODS = qw(@METHODS);\n";
+
+# generate code to make one pass of moving average.
+# $x is source pdl, $y is target pdl.
+# eg 'x' and 'y',  or 'y' and 'ytemp'.
+sub gen_onepass {
+    my ($x,$y) = @_;
+    qq{
+     {
+       acc = \$$y(n=>0) = \$$x(n=>0);
+       for(i=1;i<=hw;i++) {
+         acc += \$$x(n=>2*i-1) + \$$x(n=>2*i);
+         \$$y(n=>i) = acc /(2*i+1);
+       }
+       for(i=hw+1;i<nmax-hw;i++) {
+         acc += \$$x(n=>i+hw) - \$$x(n=>i-hw-1);
+         \$$y(n=>i) = acc/w;
+       }
+       for(i=nmax-hw;i<nmax;i++) {
+         acc -= \$$x(n=>2*i-nmax) + \$$x(n=>2*i-nmax-1);
+         \$$y(n=>i) = acc/(2*(nmax-i)-1);
+       }
+      }
+     }
+}
+
+{ # moving average block
+
+ my $code0 = q{
+   $TFDBSUL(double,double,int,int,int,int) acc = 0;
+   int i, w, nmax, max, hw;
+   hw = $COMP(half_width);
+   w = 2 * hw + 1;
+   nmax = $SIZE(n);
+ };
+
+ my $gen_types = [qw(F D B S U L)];
+
+pp_def('mov_avg',
+  Pars  => 'x(n); double [o]y(n)',
+  OtherPars => 'int half_width',
+  GenericTypes => $gen_types,
+  HandleBad => 0,
+  Code  => 
+   $code0 . gen_onepass('x','y'),
+   Doc => q{
+
+=for ref
+
+Moving average with a single pass.
+
+}
+);
+
+pp_def('multi_pass_mov_avg',
+  Pars  => 'x(n); double [o]y(n); double [t]ytemp(n)',
+  OtherPars => 'int half_width; int n_passes',
+  GenericTypes => $gen_types,
+  HandleBad => 0,
+  Code  => 
+   $code0 . q{
+   int npass = $COMP(n_passes);
+   int ipass;
+   int parity = npass % 2;
+   if (parity)
+      } . gen_onepass('x','y') . q!
+   else 
+      ! . gen_onepass('x','ytemp') . q!
+   for(ipass=1;ipass<npass;ipass++) {
+     if( (ipass+parity) % 2 )
+      ! . gen_onepass('ytemp','y') . q!
+    else
+      ! . gen_onepass('y','ytemp') . q!
+   }
+  !,   
+ Doc => q{
+
+=for ref
+
+This is the same as C<mov_avg>, except that
+smoothing is repeated n_passes times. Note that storage C<ytemp>
+is created.
+
+}
+
+ );
+
+}# end moving average block
