@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 pp_setversion("'$VERSION'");
 
 pp_addpm({At=>'Top'}, <<'EO_TOPMATTER');
@@ -88,6 +88,7 @@ sub moving_average {
 
 EO_MIDDLE
 
+
 #our @METHODS = qw( moving_average mov_avg multi_pass_mov_avg );
 #pp_add_exported ( @METHODS );
 
@@ -144,6 +145,8 @@ pp_def('mov_avg',
 
 Moving average with a single pass.
 
+=cut
+
 }
 );
 
@@ -175,6 +178,8 @@ pp_def('multi_pass_mov_avg',
 This is the same as C<mov_avg>, except that
 smoothing is repeated n_passes times. Note that storage C<ytemp>
 is created.
+
+=cut
 
 }
 
