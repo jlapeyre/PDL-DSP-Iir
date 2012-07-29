@@ -37,6 +37,8 @@ well.
 
 =head2  moving_average
 
+=for ref
+
  moving_average($data, $half_width [, $n_passes ]);
 
 Other terms for this kind of filter are: smoothing, sliding average, box smoothing, boxcar smoothing,
