@@ -21,4 +21,4 @@ no_index:
 requires:
   Exporter: 0
   PDL: 0
-version: 0.001
+version: 0.002
