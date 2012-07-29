@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               PDL-DSP-Iir
-version:            0.001
+version:            0.002
 abstract:           Infinite impulse response and recursive filters
 author:
     - John Lapeyre <jlapeyre@cpan.org>
